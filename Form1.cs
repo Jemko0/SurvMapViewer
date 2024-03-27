@@ -55,28 +55,7 @@ namespace SurvMapViewer
         public bool graphicsLock = false;
         private void DrawMapAsync()
         {
-            /* Mult thread approach 1
-            new Thread(() =>
-            {
-                Thread.CurrentThread.IsBackground = true;
-                for (int xit = 0; xit < imgsize; xit++)
-                {
-                    for (int yit = 0; yit < imgsize; yit++)
-                    {
-                        float nvalraw = GetNoise(xit * ZoomFactor, yit * ZoomFactor);
-                        float nval = nvalraw / 5000000;
-                        if (!graphicsLock)
-                        {
-                            bmp.SetPixel(xit, yit, GetMapColor(nval));
-                        }
-                    }
-                }
-                
-            }).Start();
-            pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(pictureBox1_Paint);
-            */
-
-            //Mult thread approach 2
+            //im a fucking genius
             bgThread.RunWorkerAsync();
         }
 
@@ -96,7 +75,7 @@ namespace SurvMapViewer
         private void bgThread_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(pictureBox1_Paint);
-            //so fresh and clean
+            //im a fucking genius
             pictureBox1.Refresh();
         }
 
@@ -143,6 +122,7 @@ namespace SurvMapViewer
             graphicsLock = false;
         }
 
+        //im a fucking genius
         private void SetupNoise()
         {
             //LAYER 1
