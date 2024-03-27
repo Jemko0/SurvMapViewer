@@ -1,35 +1,27 @@
-﻿using FastNoise;
-using System;
-using System.Collections.Generic;
+﻿using System;
+using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Drawing.Design;
-using System.Drawing.Text;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
-using System.Threading;
+using System.Net.Http.Headers;
 using System.Windows.Forms;
-using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
-using System.IO;
+
 
 namespace SurvMapViewer
 {
     public partial class Form1 : Form
     {
-        //configurable
+        //runtime configurable
         public static int WorldSeed = -617053759;
-        
         public static int imgsize = 500;
-
-        //MapControl
+        public static int QualityLevel = 2;
+        public static float scaledimgsize = imgsize / QualityLevel;
+        //MapControl also runtime
         public float ZoomFactor = 1f;
         public float ViewX = 0;
         public float ViewY = 0;
-        //INGAME UNCHANGED VARS
+        public float ViewSpd = 5;
+
+        //Game vars
         public float NoiseScale = 375f;
         public float ZMultiplier = 11500.0f;
 
@@ -51,21 +43,24 @@ namespace SurvMapViewer
             SetupNoise();
             DrawMapAsync();
         }
-        public Bitmap bmp = new Bitmap(imgsize, imgsize);
+        public Bitmap bmp = new Bitmap((int)scaledimgsize, (int)scaledimgsize);
         public bool graphicsLock = false;
         private void DrawMapAsync()
         {
             //im a fucking genius
+            
             bgThread.RunWorkerAsync();
         }
 
         private void bgThread_DoWork(object sender, DoWorkEventArgs e)
         {
-            for (int xit = 0; xit < imgsize; xit++)
+            float frozenViewX = ViewX;
+            float frozenViewY = ViewY;
+            for (int xit = 0; xit < scaledimgsize; xit++)
             {
-                for (int yit = 0; yit < imgsize; yit++)
+                for (int yit = 0; yit < scaledimgsize; yit++)
                 {
-                    float valraw = GetNoise(xit * ZoomFactor, yit * ZoomFactor);
+                    float valraw = GetNoise((xit * ZoomFactor) + frozenViewX, (yit * ZoomFactor) + frozenViewY);
                     float val = valraw / 5000000;
                     bmp.SetPixel(xit, yit, GetMapColor(val));
                 }
@@ -75,28 +70,24 @@ namespace SurvMapViewer
         private void bgThread_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(pictureBox1_Paint);
-            //im a fucking genius
             pictureBox1.Refresh();
+            UpdateUIShit();
         }
 
-        /*
-        private void DrawMap()
+        private void UpdateUIShit()
         {
-            
-            pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(pictureBox1_Paint);
-            
-            for (int xit = 0; xit < imgsize; xit++)
-            {
-                for (int yit = 0; yit < imgsize; yit++)
-                {
-                    float nvalraw = GetNoise(xit * ZoomFactor, yit * ZoomFactor);
-                    float nval = nvalraw / 5000000;
-                    bmp.SetPixel(xit, yit, GetMapColor(nval));
-                }
-            }
-            pictureBox1.Refresh();
+            xposLabel.Text = "X: " + ViewX.ToString();
+            yposLabel.Text = "Y: " + ViewY.ToString();
+            zoomLabel.Text = "Zoom: " + ZoomFactor.ToString();
+            wseedbox.Text = WorldSeed.ToString();
         }
-        */
+
+        private void ChangeSeed(int newseed)
+        {
+            WorldSeed = newseed;
+            SetupNoise();
+            DrawMapAsync();
+        }
 
         private Color GetMapColor(float noiseValue)
         {
@@ -114,15 +105,29 @@ namespace SurvMapViewer
                 return Water;
             }
         }
+
+        private void MoveCam(float HorInput, float VerInput)
+        {
+            ViewX += HorInput;
+            ViewY += VerInput;
+        }
+
+        //this is grabagwe
+        public bool appliedTransform = false;
         private void pictureBox1_Paint(object sender, System.Windows.Forms.PaintEventArgs e)
         {
             graphicsLock = true;
             Graphics g = e.Graphics;
-            e.Graphics.DrawImage(bmp, 0, 0);
+            e.Graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
+            e.Graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+            Bitmap scalebmp = new Bitmap(bmp, new Size(bmp.Width * QualityLevel, bmp.Height * QualityLevel));
+            e.Graphics.DrawImage(scalebmp, 0, 0);
             graphicsLock = false;
         }
 
         //im a fucking genius
+
+        //noise
         private void SetupNoise()
         {
             //LAYER 1
@@ -206,18 +211,72 @@ namespace SurvMapViewer
             return finalheight;
         }
 
+        //button click shit
         private void ZoomUp_Click(object sender, EventArgs e)
         {
-            ZoomFactor = ZoomFactor + 0.1f;
-            DrawMapAsync();
+            if(!bgThread.IsBusy)
+            {
+                ZoomFactor = ZoomFactor - 1f * ZoomFactor / 2;
+                DrawMapAsync();
+            }
         }
 
         private void ZoomDown_Click(object sender, EventArgs e)
         {
-            ZoomFactor = ZoomFactor - 0.1f;
-            DrawMapAsync();
+            if (!bgThread.IsBusy)
+            {
+                ZoomFactor = ZoomFactor + 1f * ZoomFactor / 2;
+                DrawMapAsync();
+            }
         }
 
+        private void camspdchangerthing_Scroll(object sender, EventArgs e)
+        {
+            ViewSpd = camspdchangerthing.Value;
+            rndlabel1.Text = "Camera Speed: " + ViewSpd.ToString();
+        }
+
+        private void movup_Click(object sender, EventArgs e)
+        {
+            MoveCam(0, -ViewSpd);
+            if (!bgThread.IsBusy)
+            {
+                DrawMapAsync();
+            }
+        }
+
+        private void movdown_Click(object sender, EventArgs e)
+        {
+            MoveCam(0, ViewSpd);
+            if (!bgThread.IsBusy)
+            {
+                DrawMapAsync();
+            }
+        }
+
+        private void movL_Click(object sender, EventArgs e)
+        {
+            MoveCam(-ViewSpd, 0);
+            if (!bgThread.IsBusy)
+            {
+                DrawMapAsync();
+            }
+           
+        }
+
+        private void movR_Click(object sender, EventArgs e)
+        {
+            MoveCam(ViewSpd, 0);
+            if (!bgThread.IsBusy)
+            {
+                DrawMapAsync();
+            }
+        }
+
+        private void applyseed_Click(object sender, EventArgs e)
+        {
+            ChangeSeed(Int32.Parse(wseedbox.Text));
+        }
 
         //other shit classes for TYPE CONVERSION because fuck you
     }
