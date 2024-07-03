@@ -43,6 +43,7 @@
             this.movR = new System.Windows.Forms.Button();
             this.wseedbox = new System.Windows.Forms.TextBox();
             this.applyseed = new System.Windows.Forms.Button();
+            this.MousePosLabel = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.camspdchangerthing)).BeginInit();
             this.SuspendLayout();
@@ -58,6 +59,8 @@
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pictureBox1.TabIndex = 0;
             this.pictureBox1.TabStop = false;
+            this.pictureBox1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pictureBox1_MouseDown);
+            this.pictureBox1.MouseUp += new System.Windows.Forms.MouseEventHandler(this.pictureBox1_MouseUp);
             // 
             // ZoomUp
             // 
@@ -211,11 +214,21 @@
             this.applyseed.UseVisualStyleBackColor = true;
             this.applyseed.Click += new System.EventHandler(this.applyseed_Click);
             // 
+            // MousePosLabel
+            // 
+            this.MousePosLabel.AutoSize = true;
+            this.MousePosLabel.Location = new System.Drawing.Point(26, 827);
+            this.MousePosLabel.Name = "MousePosLabel";
+            this.MousePosLabel.Size = new System.Drawing.Size(135, 20);
+            this.MousePosLabel.TabIndex = 14;
+            this.MousePosLabel.Text = "MOUSE POS X Y";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1159, 859);
+            this.Controls.Add(this.MousePosLabel);
             this.Controls.Add(this.applyseed);
             this.Controls.Add(this.wseedbox);
             this.Controls.Add(this.movR);
@@ -258,6 +271,7 @@
         private System.Windows.Forms.Button movR;
         private System.Windows.Forms.TextBox wseedbox;
         private System.Windows.Forms.Button applyseed;
+        private System.Windows.Forms.Label MousePosLabel;
     }
 }
 

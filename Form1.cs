@@ -3,6 +3,9 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Drawing;
 using System.Net.Http.Headers;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Timers;
 using System.Windows.Forms;
 
 
@@ -11,15 +14,17 @@ namespace SurvMapViewer
     public partial class Form1 : Form
     {
         //runtime configurable
-        public static int WorldSeed = -617053759;
+        public static int WorldSeed = -64;
         public static int imgsize = 500;
         public static int QualityLevel = 2;
         public static float scaledimgsize = imgsize / QualityLevel;
+        public bool mousedown;
         //MapControl also runtime
         public float ZoomFactor = 1f;
         public float ViewX = 0;
         public float ViewY = 0;
         public float ViewSpd = 5;
+        public float SeaLevel = 201.5f;
 
         //Game vars
         public float NoiseScale = 375f;
@@ -42,13 +47,14 @@ namespace SurvMapViewer
         {
             SetupNoise();
             DrawMapAsync();
+            StartMouseTimer();
         }
+
         public Bitmap bmp = new Bitmap((int)scaledimgsize, (int)scaledimgsize);
         public bool graphicsLock = false;
         private void DrawMapAsync()
         {
             //im a fucking genius
-            
             bgThread.RunWorkerAsync();
         }
 
@@ -62,7 +68,7 @@ namespace SurvMapViewer
                 {
                     float valraw = GetNoise((xit * ZoomFactor) + frozenViewX, (yit * ZoomFactor) + frozenViewY);
                     float val = valraw / 5000000;
-                    bmp.SetPixel(xit, yit, GetMapColor(val));
+                    bmp.SetPixel(xit, yit, GetMapColor(val, (xit * ZoomFactor) + frozenViewX, (yit * ZoomFactor) + frozenViewY));
                 }
             }
         }
@@ -72,6 +78,21 @@ namespace SurvMapViewer
             pictureBox1.Paint += new System.Windows.Forms.PaintEventHandler(pictureBox1_Paint);
             pictureBox1.Refresh();
             UpdateUIShit();
+        }
+
+        public static void StartMouseTimer()
+        {
+            System.Timers.Timer timer = new System.Timers.Timer();
+            timer.Interval = 1000;
+            timer.Start();
+            timer.Elapsed += MouseTimerUpdate;
+            
+        }
+
+        private static void MouseTimerUpdate(object sender, ElapsedEventArgs e)
+        {
+            var f = new Form1();
+            f.MousePosLabel.Text = "X: " + Cursor.Position.X.ToString() + "\n" + "Y: " + Cursor.Position.Y.ToString();
         }
 
         private void UpdateUIShit()
@@ -89,14 +110,18 @@ namespace SurvMapViewer
             DrawMapAsync();
         }
 
-        private Color GetMapColor(float noiseValue)
+        private Color GetMapColor(float noiseValue, float x, float y)
         {
             //throw new Exception("NoiseValue is" + noiseValue.ToString());
-            Color Sand = Color.Yellow;
-            Color Grass = Color.FromArgb((int)noiseValue, 0, 255, 0);
-            Color Water = Color.FromArgb((int)noiseValue, 0, 0, 255);
+            Color Grass = Color.FromArgb(255, 0, (int)noiseValue, 0);
+            Color Water = Color.FromArgb(255, 0, 0, (int)noiseValue);
 
-            if(noiseValue > 201)
+            if(x == 0 && y == 0)
+            {
+                return Color.Red;
+            }
+
+            if (noiseValue > SeaLevel)
             {
                 return Grass;
             }
@@ -276,6 +301,16 @@ namespace SurvMapViewer
         private void applyseed_Click(object sender, EventArgs e)
         {
             ChangeSeed(Int32.Parse(wseedbox.Text));
+        }
+
+        private void pictureBox1_MouseDown(object sender, MouseEventArgs e)
+        {
+            mousedown = true;
+        }
+
+        private void pictureBox1_MouseUp(object sender, MouseEventArgs e)
+        {
+            mousedown = false;
         }
 
         //other shit classes for TYPE CONVERSION because fuck you
